@@ -11,38 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Unzip project + Debug files
+      - name: Unzip + Show structure
         run: |
-          unzip -o "omniai (4).zip"
-          echo "=== FILES AFTER UNZIP ==="
+          unzip -o "omniai (3).zip"
+          echo "=== ALL FILES AFTER UNZIP ==="
           ls -la
-          echo "=== SEARCHING FOR gradlew ==="
-          find . -name "gradlew" -type f
+          find . -maxdepth 2 -type f -name "gradlew"
 
-      - name: Find project root with gradlew
+      - name: Find gradlew folder
         id: find_root
         run: |
-          GRADLEW_PATH=$(find . -type f -name "gradlew" -print -quit)
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "ERROR: gradlew not found anywhere in zip"
-            echo "Your zip must contain gradlew at top level"
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-          echo "Found gradlew at: $GRADLEW_PATH"
-          echo "Project directory: $PROJECT_DIR"
-          echo "dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
+          DIR=$(dirname $(find . -name "gradlew" -type f -print -quit))
+          echo "Project dir: $DIR"
+          echo "dir=$DIR" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           
-      - name: Make gradlew executable
-        run: chmod +x ${{ steps.find_root.outputs.dir }}/gradlew
-          
-      - name: Build debug APK
-        run: ${{ steps.find_root.outputs.dir }}/gradlew assembleDebug --stacktrace
+      - name: Make gradlew executable + Build
+        run: |
+          chmod +x ${{ steps.find_root.outputs.dir }}/gradlew
+          ${{ steps.find_root.outputs.dir }}/gradlew assembleDebug --stacktrace
       
       - uses: actions/upload-artifact@v4
         with:
