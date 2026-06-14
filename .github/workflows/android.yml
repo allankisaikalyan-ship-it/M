@@ -11,11 +11,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Unzip project
+      - name: Unzip project + Debug files
         run: |
           unzip -o "omniai (4).zip"
-          echo "Files after unzip:"
+          echo "=== FILES AFTER UNZIP ==="
           ls -la
+          echo "=== SEARCHING FOR gradlew ==="
+          find . -name "gradlew" -type f
+
+      - name: Find project root with gradlew
+        id: find_root
+        run: |
+          GRADLEW_PATH=$(find . -type f -name "gradlew" -print -quit)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "ERROR: gradlew not found anywhere in zip"
+            echo "Your zip must contain gradlew at top level"
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+          echo "Found gradlew at: $GRADLEW_PATH"
+          echo "Project directory: $PROJECT_DIR"
+          echo "dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-java@v4
         with:
@@ -23,12 +39,12 @@ jobs:
           java-version: '17'
           
       - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: chmod +x ${{ steps.find_root.outputs.dir }}/gradlew
           
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ${{ steps.find_root.outputs.dir }}/gradlew assembleDebug --stacktrace
       
       - uses: actions/upload-artifact@v4
         with:
           name: OmniAI-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.find_root.outputs.dir }}/app/build/outputs/apk/debug/app-debug.apk
