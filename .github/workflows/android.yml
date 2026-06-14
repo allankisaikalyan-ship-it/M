@@ -9,33 +9,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Unzip + Fix folder structure
+      - name: Unzip + Show everything
         run: |
-          unzip -o "omniai (4).zip"
-          echo "=== BEFORE FIX ==="
+          unzip -o "omniai-final.zip"
+          echo "========== ALL FILES =========="
           ls -la
-          
-          # If gradlew is inside a subfolder, move everything up
-          if [ -f ./*/gradlew ]; then
-            echo "Found nested folder, moving files up..."
-            mv ./*/gradlew .
-            mv ./*/gradlew.bat .
-            mv ./*/settings.gradle.kts .
-            mv ./*/build.gradle.kts .
-            mv ./*/app . 2>/dev/null || true
-            mv ./*/gradle . 2>/dev/null || true
-          fi
-          
-          echo "=== AFTER FIX ==="
-          ls -la
+          echo "========== SEARCH gradlew =========="
+          find . -type f -name "gradlew" 2>/dev/null || echo "gradlew NOT FOUND"
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          
-      - name: Build APK
+      - name: Build only if gradlew exists
         run: |
+          if [ ! -f gradlew ]; then
+            echo "ERROR: gradlew missing. Your zip must be exported from AI Studio"
+            exit 1
+          fi
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
       
