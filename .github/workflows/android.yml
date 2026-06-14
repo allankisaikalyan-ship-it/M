@@ -1,8 +1,6 @@
 name: Build Omni AI APK
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -11,31 +9,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Unzip + Show structure
+      - name: Unzip + Fix folder structure
         run: |
           unzip -o "omniai (4).zip"
-          echo "=== ALL FILES AFTER UNZIP ==="
+          echo "=== BEFORE FIX ==="
           ls -la
-          find . -maxdepth 2 -type f -name "gradlew"
-
-      - name: Find gradlew folder
-        id: find_root
-        run: |
-          DIR=$(dirname $(find . -name "gradlew" -type f -print -quit))
-          echo "Project dir: $DIR"
-          echo "dir=$DIR" >> $GITHUB_OUTPUT
+          
+          # If gradlew is inside a subfolder, move everything up
+          if [ -f ./*/gradlew ]; then
+            echo "Found nested folder, moving files up..."
+            mv ./*/gradlew .
+            mv ./*/gradlew.bat .
+            mv ./*/settings.gradle.kts .
+            mv ./*/build.gradle.kts .
+            mv ./*/app . 2>/dev/null || true
+            mv ./*/gradle . 2>/dev/null || true
+          fi
+          
+          echo "=== AFTER FIX ==="
+          ls -la
 
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           
-      - name: Make gradlew executable + Build
+      - name: Build APK
         run: |
-          chmod +x ${{ steps.find_root.outputs.dir }}/gradlew
-          ${{ steps.find_root.outputs.dir }}/gradlew assembleDebug --stacktrace
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
       
       - uses: actions/upload-artifact@v4
         with:
-          name: OmniAI-debug
-          path: ${{ steps.find_root.outputs.dir }}/app/build/outputs/apk/debug/app-debug.apk
+          name: OmniAI-debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
